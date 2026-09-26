@@ -26,6 +26,10 @@ reviewed. Keep this file and `README.md` current as conventions evolve.
   reference, add a fixture, and run the opt-in live probe. Read
   `docs/decisions/ADR-0001-typed-source-clients.md` before changing interfaces
   or introducing a cross-service aggregate or caching policy.
+- For React Native/Expo compatibility changes, run `npm run check:expo`:
+  `examples/expo-compat/` type-checks a consumer and exports iOS/Android Hermes
+  bundles. This is a bundle check, not an on-device network test. Keep UMLS API
+  keys on a trusted backend rather than in a client bundle.
 
 ---
 
@@ -104,6 +108,7 @@ scanning). Both are needed for full coverage.
 | `npm run test:coverage` | Run fixture tests with CI-enforced coverage thresholds |
 | `npm run test:live` | Run opt-in, low-volume read-only upstream probes (UMLS requires `UMLS_API_KEY`) |
 | `npm run check:services` | Run coverage and then the live probes |
+| `npm run check:expo` | Build and check the Expo SDK 57 consumer's types and native bundles |
 | `npx changeset` | Create a changeset (required for any change that affects published output) |
 
 ---
@@ -122,6 +127,7 @@ scanning). Both are needed for full coverage.
   - `npm run build` (tsup)
   - `npm run test:coverage` (Vitest fixtures and coverage floors)
   - `npm audit --audit-level=moderate` (vulnerability scan)
+  - `npm run check:expo` (separate job: Expo consumer type-check and iOS/Android exports)
 - The **pre-commit suite** (file hygiene + secret scanning) also runs in CI
   via `.github/workflows/pre-commit.yml` on every push to `main` and PRs
   against `main` (`pre-commit run --all-files --show-diff-on-failure` with
