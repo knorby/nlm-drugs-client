@@ -19,6 +19,91 @@ function fixture(responses: Array<unknown | string>) {
 }
 
 describe("typed source clients", () => {
+  it("iterates PubMed ID pages without repeating an offset and retrieves XML", async () => {
+    const { client, requests } = fixture([
+      { esearchresult: { count: "2", retstart: "0", idlist: ["111"] } },
+      { esearchresult: { count: "2", retstart: "1", idlist: ["222"] } },
+      "<PubmedArticleSet />",
+    ]);
+    const ids = [];
+    for await (const id of client.pubMed.iterateIds("aspirin", { pageSize: 1 }))
+      ids.push(id);
+    expect(ids).toEqual(["111", "222"]);
+    expect(
+      requests.slice(0, 2).map(({ url }) => url.searchParams.get("retstart")),
+    ).toEqual(["0", "1"]);
+    expect(await client.pubMed.fetchXml(ids)).toBe("<PubmedArticleSet />");
+    expect(requests[2]?.url.searchParams.get("id")).toBe("111,222");
+  });
+
+  it("maps RxNorm NDC results and keeps empty Prescribable matches empty", async () => {
+    const { client } = fixture([
+      { idGroup: { rxnormId: ["198440"] } },
+      { ndcGroup: { ndcList: { ndc: ["00071015723"] } } },
+      { ndcStatus: { status: "ACTIVE" } },
+      { idGroup: {} },
+    ]);
+    expect(await client.rxNorm.findByNdc("00071-0157-23")).toEqual(["198440"]);
+    expect(await client.rxNorm.getNdcs("198440")).toEqual(["00071015723"]);
+    expect(await client.rxNorm.getNdcStatus("00071015723")).toMatchObject({
+      status: "ACTIVE",
+    });
+    expect(await client.prescribable.findConcepts("nonexistent-name")).toEqual(
+      [],
+    );
+  });
+
+  it("parses the RxClass drug-info wrapper rather than the class-name wrapper", async () => {
+    const { client } = fixture([
+      {
+        rxclassDrugInfoList: {
+          rxclassDrugInfo: [
+            {
+              rxclassMinConceptItem: {
+                classId: "N02",
+                className: "ANALGESICS",
+                classType: "ATC1-4",
+              },
+            },
+          ],
+        },
+      },
+    ]);
+    expect(
+      await client.rxClass.findClassesForRxCui("198440", { relaSource: "ATC" }),
+    ).toEqual([
+      { classId: "N02", className: "ANALGESICS", classType: "ATC1-4" },
+    ]);
+  });
+
+  it("reads DailyMed SPL package codes and XML without treating XML as JSON", async () => {
+    const { client, requests } = fixture([
+      { data: { ndcs: [{ ndc: "00071015723" }] } },
+      "<document />",
+    ]);
+    expect(await client.dailyMed.ndcsForSpl("label-id")).toEqual([
+      "00071015723",
+    ]);
+    expect(await client.dailyMed.getSplXml("label-id")).toBe("<document />");
+    expect(requests[1]?.url.pathname).toBe(
+      "/dailymed/services/v2/spls/label-id.xml",
+    );
+  });
+
+  it("retrieves UMLS concept and atoms from their distinct result wrappers", async () => {
+    const { client, requests } = fixture([
+      { result: { ui: "C0004057", name: "Aspirin" } },
+      { result: [{ ui: "A0001", name: "aspirin" }] },
+    ]);
+    expect(await client.umls.getConcept("C0004057")).toMatchObject({
+      ui: "C0004057",
+    });
+    expect(
+      await client.umls.getAtoms("C0004057", { source: "RXNORM" }),
+    ).toMatchObject([{ ui: "A0001" }]);
+    expect(requests[1]?.url.searchParams.get("sabs")).toBe("RXNORM");
+  });
+
   it("finds RxNorm concepts by name and looks up a concept with its native identity", async () => {
     const { client, requests } = fixture([
       { idGroup: { rxnormId: ["1191"] } },

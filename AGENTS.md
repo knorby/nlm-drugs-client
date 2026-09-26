@@ -22,8 +22,10 @@ reviewed. Keep this file and `README.md` current as conventions evolve.
   `tests/typed-clients.test.ts`; verify paths, response parsing, pagination,
   errors, and cancellation. Check official docs before extending a method or
   catalog. Raw JSON results are `unknown` until validated.
-- Read `docs/decisions/ADR-0002-typed-service-clients.md` before changing
-  interfaces or introducing a cross-service aggregate or caching policy.
+- For service changes, use `docs/service-maintenance.md` to locate the upstream
+  reference, add a fixture, and run the opt-in live probe. Read
+  `docs/decisions/ADR-0001-typed-source-clients.md` before changing interfaces
+  or introducing a cross-service aggregate or caching policy.
 
 ---
 
@@ -96,9 +98,12 @@ scanning). Both are needed for full coverage.
 | `npm run format` | Format with Biome (writes changes) |
 | `npm run check` | Lint + format in one pass (writes changes) |
 | `npm run typecheck` | Type-check `src/` + `tests/` with `tsc` (uses `tsconfig.test.json`, no emit) |
+| `npm run typecheck:package` | Build and check the CommonJS consumer declarations |
 | `npm test` | Run tests once (Vitest) |
 | `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with coverage reporting |
+| `npm run test:coverage` | Run fixture tests with CI-enforced coverage thresholds |
+| `npm run test:live` | Run opt-in, low-volume read-only upstream probes (UMLS requires `UMLS_API_KEY`) |
+| `npm run check:services` | Run coverage and then the live probes |
 | `npx changeset` | Create a changeset (required for any change that affects published output) |
 
 ---
@@ -106,14 +111,16 @@ scanning). Both are needed for full coverage.
 ## Testing and CI
 
 - Tests live in `tests/` and use **Vitest**. Add test files as
-  `*.test.ts` alongside or under `tests/`.
+  `*.test.ts` alongside or under `tests/`. Network-independent tests run in
+  default CI; `tests/live/` is opt-in, serial, and documents sampled upstream
+  contracts (see `docs/service-maintenance.md`).
 - **GitHub Actions** runs the full check suite on every push to `main` and on
   PRs against `main` (see `.github/workflows/tests.yml`):
   - `npm run lint` (Biome — lint + formatting; formatting is enforced in CI,
     so run `npm run check` before committing if hooks are skipped)
   - `npm run typecheck` (tsc, src + tests)
   - `npm run build` (tsup)
-  - `npm test` (Vitest)
+  - `npm run test:coverage` (Vitest fixtures and coverage floors)
   - `npm audit --audit-level=moderate` (vulnerability scan)
 - The **pre-commit suite** (file hygiene + secret scanning) also runs in CI
   via `.github/workflows/pre-commit.yml` on every push to `main` and PRs

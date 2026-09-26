@@ -41,6 +41,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:live": "vitest run --config vitest.live.config.ts",
+    "check:services": "npm run test:coverage && npm run test:live",
     "release": "npm run build && changeset publish",
     "prepare": "husky"
   },

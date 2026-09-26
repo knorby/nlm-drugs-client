@@ -6,6 +6,8 @@ Living documentation for design, architecture, and decisions.
 
 - `decisions/` — Architecture Decision Records (ADRs). Create a new markdown
   file per significant decision, using the template below.
+- [`service-maintenance.md`](service-maintenance.md) — per-source discovery,
+  response/pagination notes, live probes, and upkeep checks.
 
 ## ADR template
 
@@ -29,4 +31,4 @@ What are the trade-offs, risks, and follow-up actions?
 ```
 
 Number ADRs sequentially (`ADR-0001`, `ADR-0002`, ...). Keep each record concise
-and factual; supersede rather than rewrite accepted records.
+and factual; supersede accepted records when an established decision changes.
