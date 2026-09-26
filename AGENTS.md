@@ -2,26 +2,28 @@
 
 Instructions and steering for AI coding agents working in this repository.
 
-This is a source-facing TypeScript client for RxNorm, Prescribable RxNorm,
-RxClass, RxTerms, DailyMed, MeSH, MedlinePlus Connect, and PubMed E-utilities.
+This is a TypeScript client for RxNav, DailyMed, MeSH, PubMed, MedlinePlus,
+UMLS, ClinicalTrials.gov, and PubChem. Typed source methods parse common
+results; a source-facing operation catalog remains as an escape hatch.
 The package is private while its public interface and service terms are
 reviewed. Keep this file and `README.md` current as conventions evolve.
 
 ## Client conventions
 
-- `src/index.ts` contains the operation catalogs, fetch transport, service
-  namespaces, and explicit identifier routes. Keep upstream operation names,
-  query keys, and response shapes intact; do not invent a merged drug record.
+- `src/index.ts` composes typed service namespaces. `src/operations.ts` holds
+  the upstream catalogs, fetch transport, and identifier routes. Each typed
+  module models its own service; validate fields before returning typed
+  results. Keep upstream names and shapes intact in `.call`.
 - `client.identifiers` names the direction of each key lookup. Add a direction
   only when the underlying upstream mapping is documented. NDC, RxCUI, SPL
   set ID, and UNII are distinct key spaces; avoid treating a product, package,
   ingredient, and label as interchangeable.
-- Prefer injected `fetch` tests in `tests/client.test.ts`; verify method,
-  path, query/body, content type, errors, and cancellation. Check operation
-  parameters against the official service documentation before extending a
-  catalog. JSON results are `unknown` until a response is validated.
-- Read `docs/decisions/ADR-0001-source-facing-client.md` before introducing
-  a cross-service aggregate, caching policy, or dependency on another client.
+- Prefer injected `fetch` tests in `tests/client.test.ts` and
+  `tests/typed-clients.test.ts`; verify paths, response parsing, pagination,
+  errors, and cancellation. Check official docs before extending a method or
+  catalog. Raw JSON results are `unknown` until validated.
+- Read `docs/decisions/ADR-0002-typed-service-clients.md` before changing
+  interfaces or introducing a cross-service aggregate or caching policy.
 
 ---
 

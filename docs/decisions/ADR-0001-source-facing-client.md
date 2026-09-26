@@ -1,6 +1,6 @@
 # ADR-0001: Source-facing operations and explicit key routes
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0002
 - **Date:** 2026-09-26
 
 ## Context

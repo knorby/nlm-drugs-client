@@ -1,7 +1,7 @@
 {
   "name": "@knorby/nlm-drugs-client",
   "version": "0.0.0",
-  "description": "Source-facing TypeScript client for NLM drug, terminology, label, consumer health, MeSH, and PubMed services.",
+  "description": "Typed TypeScript clients for NLM and public biomedical information services",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
@@ -37,6 +37,7 @@
     "format": "biome format --write",
     "check": "biome check --write",
     "typecheck": "tsc -p tsconfig.test.json",
+    "typecheck:package": "npm run build && tsc --ignoreConfig --noEmit --module nodenext --moduleResolution nodenext --target es2022 --strict --skipLibCheck false tests/cjs-consumer.cts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -67,5 +68,8 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.1"
   }
 }

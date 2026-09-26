@@ -1,11 +1,12 @@
 # @knorby/nlm-drugs-client
 
-A TypeScript client for National Library of Medicine drug and health information
-services. It exposes source-facing operations for RxNorm, Prescribable RxNorm,
-RxClass, RxTerms, DailyMed, MeSH, MedlinePlus Connect, and PubMed E-utilities.
-It also provides explicit identifier routes for NDC, RxCUI, DailyMed SPL set ID,
-UNII, and drug names. It does **not** create a combined drug record or infer
-that an ingredient and a marketed package are the same entity.
+A TypeScript client for drug, terminology, literature, health-topic, clinical
+trial, and chemical information. It has typed methods for RxNorm, Prescribable
+RxNorm, RxClass, RxTerms, DailyMed, MeSH, PubMed, MedlinePlus Connect,
+MedlinePlus health topics and Genetics, UMLS, ClinicalTrials.gov, and PubChem.
+The upstream operation catalog remains available through `.call` for less
+common endpoints. An RxCUI, NDC, SPL set ID, UNII, UMLS CUI, PMID, NCT ID,
+and PubChem CID are different key spaces; the client does not merge them.
 
 The package is currently private (`private: true`) and is not published to npm.
 Its ESM and CJS builds target Node.js 22+ and other runtimes with `fetch`.
@@ -20,29 +21,34 @@ const client = new NlmDrugsClient({
   pubMed: { email: "researcher@example.org", tool: "my-research-app" },
 });
 
-// Source-native operations keep source-native request and response shapes.
-const rxNormMatch = await client.rxNorm.call("findRxcuiById", {
-  idtype: "NDC", id: "00310-0751-39",
-});
-const labelMatches = await client.dailyMed.call("spls", {
-  ndc: "00310-0751-39", page: 1,
-});
+// Typed, parsed methods with source-specific terminology and keys.
+const rxCuis = await client.rxNorm.findConcepts("aspirin", { search: 2 });
+const concept = await client.rxNorm.getConcept(rxCuis[0]!);
+const labelPage = await client.dailyMed.searchSpls({ drugName: "aspirin", pageSize: 20 });
+const classMatches = await client.rxClass.findClasses("Analgesics");
+const articles = await client.pubMed.search("aspirin[MeSH Terms]", { pageSize: 10 });
+const topics = await client.medlinePlus.searchTopics("aspirin");
+const studies = await client.clinicalTrials.searchStudies({ intervention: "aspirin" });
+const cids = await client.pubChem.findCompoundIds("aspirin");
+
+// UMLS needs your own licensed API key; omit it if you do not use UMLS.
+const umls = new NlmDrugsClient({ umls: { apiKey: process.env.UMLS_API_KEY! } });
+const cuiMatches = await umls.umls.search("aspirin", { searchType: "exact" });
 
 // Explicit directions between identifiers; results remain source responses.
 const ndcs = await client.identifiers.ndcsForRxCui("198440");
 const spls = await client.identifiers.splsForUnii("R16CO5Y76E");
 const descriptor = await client.identifiers.meshDescriptorsForName("aspirin");
 
-// Other services have dedicated namespaces.
-const articleIds = await client.pubMed.call("esearch", {
-  term: "aspirin[MeSH Terms]", retmax: 5,
-});
-const links = await client.medlinePlusConnect.drug({
-  kind: "rxcui", code: "198440", language: "en",
-});
+// Native escape hatch when no typed method is available yet.
+const raw = await client.rxNorm.call("getRxcuiHistoryStatus", { rxcui: "198440" });
 ```
 
-Each `call` takes a documented operation name and the source's query keys.
+Typed methods parse documented response fields and throw `NlmResponseError`
+when those fields have an unexpected shape. They return simple results, page
+records, or async iterators rather than upstream JSON envelopes; additional
+source fields remain available via `.call`. Each `call` takes a documented
+operation name and the source's query keys.
 Path variables (such as `rxcui` or `setid`) are removed from the query string;
 remaining options pass through to the upstream endpoint. Required parameters
 are checked before a request. Source JSON responses are `unknown` until
@@ -53,14 +59,18 @@ upstream fields without claiming a stable schema where none is validated.
 
 | Namespace | Coverage | Examples |
 | --- | --- | --- |
-| `rxNorm` | 36 RxNorm operations | `findRxcuiById`, `getNDCStatus`, `getNDCs` |
-| `prescribable` | 25 Prescribable RxNorm operations | `findRxcuiByString`, `getDrugs` |
-| `rxClass` | 17 drug-class operations | `getClassByRxNormDrugId`, `getClassMembers` |
-| `rxTerms` | 4 RxTerms operations | `getAllRxTermInfo` |
-| `dailyMed` | 12 v2 resources, plus latest PDF/ZIP and historical ZIP | `spls`, `splNdcs`, `splDocument`, `download` |
-| `mesh` | 7 lookup endpoints, SPARQL, and resource JSON | `descriptor`, `sparql`, `resource` |
-| `medlinePlusConnect` | GET and POST for medications, diagnoses, labs, and procedures | `drug`, `connect` |
-| `pubMed` | 9 E-utilities with PubMed as the default database | `esearch`, `efetch`, `elink` |
+| `rxNorm` | Concept and approximate search, NDC mapping; 36 raw operations | `findConcepts`, `approximateMatches`, `getNdcs` |
+| `prescribable` | Prescribable concept and NDC lookup; 25 raw operations | `findConcepts`, `getConcept` |
+| `rxClass` | Class name and membership search; 17 raw operations | `findClasses`, `getMembers` |
+| `rxTerms` | Display terms; 4 raw operations | `getTerm` |
+| `dailyMed` | Parsed SPL search, pagination, NDCs, XML; 12 raw resources and downloads | `searchSpls`, `iterateSpls` |
+| `mesh` | Descriptor search, resources and SPARQL; 7 raw lookups | `findDescriptors`, `getResource` |
+| `medlinePlusConnect` | Medication links, GET/POST for diagnoses, labs, procedures | `findDrugPages`, `connect` |
+| `medlinePlus` / `medlinePlusGenetics` | Health-topic and genetics search plus JSON pages | `searchTopics`, `iterateTopics`, `getPage` |
+| `pubMed` | Parsed search/summary, XML fetch and pagination; 9 raw E-utilities | `search`, `iterateIds`, `summarize` |
+| `umls` | Authenticated UMLS search, crosswalk, concepts and atoms | `search`, `crosswalk`, `getConcept` |
+| `clinicalTrials` | Study search, token pagination and NCT lookup | `searchStudies`, `iterateStudies`, `getStudy` |
+| `pubChem` | Name-to-CID, CID properties and PUG View | `findCompoundIds`, `getProperties` |
 
 `client.identifiers` routes NDC → RxCUI/SPL, RxCUI → NDC/SPL, SPL →
 NDC/RxCUI, UNII → RxCUI/SPL, and name → RxCUI/SPL/MeSH descriptor. These
@@ -84,7 +94,9 @@ form data instead of a long URL. `NlmHttpError` reports upstream source and HTTP
 without including query strings or API keys. Pass `{ signal }` as the third
 `call` argument (or the second convenience-method argument) for cancellation.
 
-No default retries, cache, rate limiter, or pagination iterator is installed.
+Pagination iterators cover DailyMed labels, PubMed IDs, MedlinePlus search,
+and ClinicalTrials.gov studies. No default retries, cache, or rate limiter is
+installed.
 Callers must respect service-specific limits, cache guidance, access terms,
 and licensing, especially for RxClass terminology. This library does not
 provide medical advice; verify clinical information against source records.
@@ -101,7 +113,10 @@ caching responses for 12–24 hours. Review the linked service terms before
 redistributing terminology content, particularly SNOMED CT data from RxClass.
 MedlinePlus Connect allows 100 requests/minute/IP; PubMed E-utilities permits
 3 requests/second without an API key (10 with one). These limits are not
-enforced by the client.
+enforced by the client. UMLS requires an API key and may require terminology
+licenses; supply the key via `umls.apiKey`, not in source code. UMLS search is
+limited to 200 results by the service, without server-side pagination. PubChem
+records describe chemical compounds, not marketed drug packages.
 
 ## Prerequisites
 
@@ -143,6 +158,7 @@ TruffleHog from source (a few minutes). Subsequent runs are cached and fast.
 | `npm run format` | Format with Biome (writes changes) |
 | `npm run check` | Lint + format in one pass (writes changes) |
 | `npm run typecheck` | Type-check source and tests with `tsc --noEmit` |
+| `npm run typecheck:package` | Build and type-check the CommonJS package declarations from a consumer |
 | `npm test` | Run tests once (Vitest) |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage reporting |
@@ -151,9 +167,14 @@ TruffleHog from source (a few minutes). Subsequent runs are cached and fast.
 
 ```
 src/
-  index.ts              # source operation catalogs, transport, identifier routes
+  index.ts              # public client and typed namespace composition
+  operations.ts         # upstream operation catalogs, transport, key routes
+  parse.ts              # response parsing and shape errors
+  rxnav.ts, dailymed.ts, mesh.ts, pubmed.ts, medlineplus.ts
+  umls.ts, clinical-trials.ts, pubchem.ts
 tests/
-  client.test.ts        # service routing and response behavior
+  client.test.ts         # source routing and identifier compatibility
+  typed-clients.test.ts # typed methods, pagination, response validation
 dist/                   # build output (gitignored, generated by tsup)
 .changeset/             # changeset files (versioning)
 .github/workflows/      # CI workflows
@@ -186,7 +207,12 @@ suite (file hygiene + secret scanning) with `SKIP=no-commit-to-branch`.
 - [MeSH RDF](https://id.nlm.nih.gov/mesh/) and
   [MeSH lookup specification](https://id.nlm.nih.gov/mesh/swagger/ui)
 - [MedlinePlus Connect](https://medlineplus.gov/medlineplus-connect/web-service/)
+- [MedlinePlus health topics](https://medlineplus.gov/about/developers/webservices/)
+  and [Genetics](https://medlineplus.gov/about/developers/geneticsdatafilesapi/)
 - [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/) for PubMed
+- [UMLS REST](https://documentation.uts.nlm.nih.gov/rest/home.html)
+- [ClinicalTrials.gov data API](https://clinicaltrials.gov/data-api/api)
+- [PubChem PUG REST](https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest)
 - [RxNav terms](https://lhncbc.nlm.nih.gov/RxNav/TermsofService.html)
 
 The package has not been released. Before a first public release, remove
