@@ -2,9 +2,26 @@
 
 Instructions and steering for AI coding agents working in this repository.
 
-This is a TypeScript starter template for universal npm packages (Node, React
-Native, and more). Customize per project and keep this file updated as
-conventions evolve.
+This is a source-facing TypeScript client for RxNorm, Prescribable RxNorm,
+RxClass, RxTerms, DailyMed, MeSH, MedlinePlus Connect, and PubMed E-utilities.
+The package is private while its public interface and service terms are
+reviewed. Keep this file and `README.md` current as conventions evolve.
+
+## Client conventions
+
+- `src/index.ts` contains the operation catalogs, fetch transport, service
+  namespaces, and explicit identifier routes. Keep upstream operation names,
+  query keys, and response shapes intact; do not invent a merged drug record.
+- `client.identifiers` names the direction of each key lookup. Add a direction
+  only when the underlying upstream mapping is documented. NDC, RxCUI, SPL
+  set ID, and UNII are distinct key spaces; avoid treating a product, package,
+  ingredient, and label as interchangeable.
+- Prefer injected `fetch` tests in `tests/client.test.ts`; verify method,
+  path, query/body, content type, errors, and cancellation. Check operation
+  parameters against the official service documentation before extending a
+  catalog. JSON results are `unknown` until a response is validated.
+- Read `docs/decisions/ADR-0001-source-facing-client.md` before introducing
+  a cross-service aggregate, caching policy, or dependency on another client.
 
 ---
 
@@ -121,6 +138,9 @@ PRs and release them all at once.
 - **Before a PR that changes published output**: run `npx changeset`, select
   bump type (patch/minor/major), write a summary. Commit the generated
   `.changeset/*.md` file alongside the code change.
+- This package is currently `private: true` and has not been published. A
+  release requires deliberately making it public, reviewing source-service
+  terms and package metadata, and then following the changeset/release flow.
 - **To release**: `npx changeset version` (bumps `package.json` +
   `CHANGELOG.md`), then `npm run release` (builds + publishes).
 - **GitHub Actions release** (`workflow-templates/release.yml`): ships
@@ -139,8 +159,8 @@ PRs and release them all at once.
   sub-action split (`select-mode` → `version` | `pack` → `publish`);
   `id-token: write` is scoped to the publish job only.
 - **Always verify before publishing**: `npm run build && npm pack --dry-run`
-  to confirm only `dist/`, `README.md`, `CHANGELOG.md`, and `LICENSE` are
-  included.
+  to confirm only `dist/`, `README.md`, `CHANGELOG.md`, `LICENSE`, and npm's
+  mandatory `package.json` are included.
 
 ### One-time release setup (repository owner)
 
@@ -239,6 +259,7 @@ These rules are mandatory. Follow them strictly.
   npm run lint && npm run typecheck && npm test && npm run build
   ```
 - Verify that `npm pack --dry-run` includes only `dist/`, `README.md`,
-  `CHANGELOG.md`, and `LICENSE` (no source, config, or secret files).
+  `CHANGELOG.md`, `LICENSE`, and npm's mandatory `package.json` (no source,
+  other config, or secret files).
 - Verify that `AGENTS.md` and `README.md` still reflect the current state of
   the repository.

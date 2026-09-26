@@ -1,49 +1,107 @@
-# repo-template-typescript
+# @knorby/nlm-drugs-client
 
-A TypeScript starter template for universal npm packages (Node, React Native,
-and more) with dual ESM/CJS output, Biome linting/formatting, Vitest testing,
-Changesets versioning, and security-focused publishing defaults.
+A TypeScript client for National Library of Medicine drug and health information
+services. It exposes source-facing operations for RxNorm, Prescribable RxNorm,
+RxClass, RxTerms, DailyMed, MeSH, MedlinePlus Connect, and PubMed E-utilities.
+It also provides explicit identifier routes for NDC, RxCUI, DailyMed SPL set ID,
+UNII, and drug names. It does **not** create a combined drug record or infer
+that an ingredient and a marketed package are the same entity.
 
-<!-- TODO: Replace project name and description above with project-specific values. -->
+The package is currently private (`private: true`) and is not published to npm.
+Its ESM and CJS builds target Node.js 22+ and other runtimes with `fetch`.
 
-## What's included
+## Usage
 
-- **`tsup`** — zero-config build tool producing dual ESM + CJS output with
-  TypeScript declaration files (`.d.ts`).
-- **`Biome`** — single-tool linter + formatter (replaces ESLint + Prettier;
-  10-100x faster).
-- **`Vitest`** — fast test runner with native ESM and TypeScript support.
-- **`Changesets`** — versioning and changelog management (decoupled from
-  merges).
-- **`Husky` + `lint-staged`** — pre-commit hooks for Biome (lint + format
-  staged files).
-- **`commitlint`** — enforces [conventional commits](https://www.conventionalcommits.org/).
-- **`pre-commit`** — file hygiene (whitespace, EOL, YAML/JSON validation),
-  secret scanning (gitleaks + TruffleHog), shellcheck, and
-  `no-commit-to-branch` protection.
-- **GitHub Actions** — CI runs lint, typecheck, build, test, and `npm audit`
-  on every push/PR, plus the pre-commit suite (`pre-commit run --all-files`).
-  A release workflow (staged at `workflow-templates/release.yml`, inactive
-  until moved into `.github/workflows/`) publishes via trusted publishing
-  (OIDC — no npm tokens).
-- **Security defaults** — `.npmrc` blocks dependency `postinstall` scripts,
-  `package.json` ships with provenance attestation enabled, `files` field
-  whitelists only `dist/` + docs + `LICENSE`.
+```ts
+import { NlmDrugsClient } from "@knorby/nlm-drugs-client";
 
-## Using this template
+const client = new NlmDrugsClient({
+  // Optional: inject a compatible fetch for tests or a custom runtime.
+  pubMed: { email: "researcher@example.org", tool: "my-research-app" },
+});
 
-1. Rename the package: update `name` and `description` in `package.json`.
-2. Reset `version` and clear `CHANGELOG.md`.
-3. Set `repository`, `author`, `bugs`, and `homepage` in `package.json`
-   (provenance attestation requires `repository`).
-4. Update `.github/CODEOWNERS` with your GitHub username, the copyright line
-   in `LICENSE`, and replace `src/`, `tests/`, and examples with your code.
-5. Delete scaffolding you don't need: the ADR template in `docs/README.md`
-   (and the empty `docs/decisions/`), `CONTRIBUTING.md` (optional), and this
-   section.
-6. Set up publishing: move the staged release workflow into place
-   (`git mv workflow-templates/release.yml .github/workflows/release.yml`),
-   then see [Versioning and publishing](#versioning-and-publishing).
+// Source-native operations keep source-native request and response shapes.
+const rxNormMatch = await client.rxNorm.call("findRxcuiById", {
+  idtype: "NDC", id: "00310-0751-39",
+});
+const labelMatches = await client.dailyMed.call("spls", {
+  ndc: "00310-0751-39", page: 1,
+});
+
+// Explicit directions between identifiers; results remain source responses.
+const ndcs = await client.identifiers.ndcsForRxCui("198440");
+const spls = await client.identifiers.splsForUnii("R16CO5Y76E");
+const descriptor = await client.identifiers.meshDescriptorsForName("aspirin");
+
+// Other services have dedicated namespaces.
+const articleIds = await client.pubMed.call("esearch", {
+  term: "aspirin[MeSH Terms]", retmax: 5,
+});
+const links = await client.medlinePlusConnect.drug({
+  kind: "rxcui", code: "198440", language: "en",
+});
+```
+
+Each `call` takes a documented operation name and the source's query keys.
+Path variables (such as `rxcui` or `setid`) are removed from the query string;
+remaining options pass through to the upstream endpoint. Required parameters
+are checked before a request. Source JSON responses are `unknown` until
+narrowed by your application; XML/text responses are strings. This preserves
+upstream fields without claiming a stable schema where none is validated.
+
+### Service surfaces
+
+| Namespace | Coverage | Examples |
+| --- | --- | --- |
+| `rxNorm` | 36 RxNorm operations | `findRxcuiById`, `getNDCStatus`, `getNDCs` |
+| `prescribable` | 25 Prescribable RxNorm operations | `findRxcuiByString`, `getDrugs` |
+| `rxClass` | 17 drug-class operations | `getClassByRxNormDrugId`, `getClassMembers` |
+| `rxTerms` | 4 RxTerms operations | `getAllRxTermInfo` |
+| `dailyMed` | 12 v2 resources, plus latest PDF/ZIP and historical ZIP | `spls`, `splNdcs`, `splDocument`, `download` |
+| `mesh` | 7 lookup endpoints, SPARQL, and resource JSON | `descriptor`, `sparql`, `resource` |
+| `medlinePlusConnect` | GET and POST for medications, diagnoses, labs, and procedures | `drug`, `connect` |
+| `pubMed` | 9 E-utilities with PubMed as the default database | `esearch`, `efetch`, `elink` |
+
+`client.identifiers` routes NDC → RxCUI/SPL, RxCUI → NDC/SPL, SPL →
+NDC/RxCUI, UNII → RxCUI/SPL, and name → RxCUI/SPL/MeSH descriptor. These
+are independent lookups, not automatic joins; names may be ambiguous and
+identifiers may have historical, product/package, or source-specific meanings.
+For NDC status or history use `rxNorm.call("getNDCStatus", { ndc })` rather
+than treating every mapping as current. For downstream search not exposed by
+these services, use your own discovery layer and pass the returned key here.
+
+`dailyMed.call("splDocument", { setid })` returns XML text;
+`dailyMed.download({ setid, format: "pdf" | "zip", version? })` returns an
+`ArrayBuffer`. `mesh.resource("D001241")` retrieves resource JSON.
+`medlinePlusConnect.connect(input, { method: "POST" })` sends form-encoded
+parameters; GET is the default. Drug-name-only fallback is English only;
+MedlinePlus Connect returns links and titles, **not** complete drug monographs.
+`pubMed` accepts optional `apiKey`, `email`, and `tool` in the constructor;
+E-utilities usually return JSON for `einfo`/`esearch`/`esummary` and XML/text
+for other operations. For long ID lists, use
+`pubMed.call("epost", { id: ["123", "456"] }, { method: "POST" })` to send
+form data instead of a long URL. `NlmHttpError` reports upstream source and HTTP status
+without including query strings or API keys. Pass `{ signal }` as the third
+`call` argument (or the second convenience-method argument) for cancellation.
+
+No default retries, cache, rate limiter, or pagination iterator is installed.
+Callers must respect service-specific limits, cache guidance, access terms,
+and licensing, especially for RxClass terminology. This library does not
+provide medical advice; verify clinical information against source records.
+
+RxNav asks applications using NLM data to include this statement:
+
+> This product uses publicly available data from the U.S. National Library of
+> Medicine (NLM), National Institutes of Health, Department of Health and Human
+> Services; NLM is not responsible for the product and does not endorse or
+> recommend this or any other product.
+
+The RxNav families share a limit of **20 requests/second/IP** and recommend
+caching responses for 12–24 hours. Review the linked service terms before
+redistributing terminology content, particularly SNOMED CT data from RxClass.
+MedlinePlus Connect allows 100 requests/minute/IP; PubMed E-utilities permits
+3 requests/second without an API key (10 with one). These limits are not
+enforced by the client.
 
 ## Prerequisites
 
@@ -55,26 +113,20 @@ Changesets versioning, and security-focused publishing defaults.
 - **Go toolchain** — `brew install go` (required once for the TruffleHog hook
   build).
 
-## Getting started
+## Development setup
 
 ```bash
-# 1. Clone the repo (or use it as a template on GitHub)
-git clone <repo-url>
-cd <repo-name>
-
-# 2. Use the correct Node version
+# Use the correct Node version
 nvm use              # or: fnm use
 
-# 3. Install dependencies
+# Install dependencies
 npm install
 
-# 4. Set up Husky hooks (prepare script is blocked by .npmrc ignore-scripts)
+# Set up hooks (prepare is blocked by .npmrc ignore-scripts)
 npx husky
-
-# 5. Install pre-commit hooks (file hygiene + secret scanning)
 pre-commit install
 
-# 6. Run all hooks against all files to verify
+# Verify all hooks
 pre-commit run --all-files
 ```
 
@@ -90,7 +142,7 @@ TruffleHog from source (a few minutes). Subsequent runs are cached and fast.
 | `npm run lint` | Lint + formatting check with Biome (read-only) |
 | `npm run format` | Format with Biome (writes changes) |
 | `npm run check` | Lint + format in one pass (writes changes) |
-| `npm run typecheck` | Type-check with `tsc --noEmit` |
+| `npm run typecheck` | Type-check source and tests with `tsc --noEmit` |
 | `npm test` | Run tests once (Vitest) |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage reporting |
@@ -99,9 +151,9 @@ TruffleHog from source (a few minutes). Subsequent runs are cached and fast.
 
 ```
 src/
-  index.ts              # package entry point (add exports here)
+  index.ts              # source operation catalogs, transport, identifier routes
 tests/
-  index.test.ts         # test files (*.test.ts)
+  client.test.ts        # service routing and response behavior
 dist/                   # build output (gitignored, generated by tsup)
 .changeset/             # changeset files (versioning)
 .github/workflows/      # CI workflows
@@ -124,97 +176,24 @@ suite on every push to `main` and on PRs:
 A second workflow (`.github/workflows/pre-commit.yml`) runs the pre-commit
 suite (file hygiene + secret scanning) with `SKIP=no-commit-to-branch`.
 
-## Versioning and publishing
+## Sources and release status
 
-This repo uses [Changesets](https://github.com/changesets/changesets) for
-versioning. Versioning is decoupled from merges — you can merge multiple PRs
-and release them all at once.
+- [RxNorm](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html),
+  [Prescribable RxNorm](https://lhncbc.nlm.nih.gov/RxNav/APIs/PrescribableAPIs.html),
+  [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html), and
+  [RxTerms](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxTermsAPIs.html)
+- [DailyMed web services](https://dailymed.nlm.nih.gov/dailymed/app-support-web-services.cfm)
+- [MeSH RDF](https://id.nlm.nih.gov/mesh/) and
+  [MeSH lookup specification](https://id.nlm.nih.gov/mesh/swagger/ui)
+- [MedlinePlus Connect](https://medlineplus.gov/medlineplus-connect/web-service/)
+- [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/) for PubMed
+- [RxNav terms](https://lhncbc.nlm.nih.gov/RxNav/TermsofService.html)
 
-### Adding a changeset
-
-```bash
-npx changeset
-```
-
-Select patch/minor/major, write a summary. Commit the generated
-`.changeset/*.md` alongside your code.
-
-### Releasing
-
-The release workflow ships **staged** at `workflow-templates/release.yml` and
-is inactive in this template (GitHub only runs workflows from
-`.github/workflows/`). To enable it:
-
-```bash
-git mv workflow-templates/release.yml .github/workflows/release.yml
-```
-
-Once active, the flow is automated. The release workflow runs on every push
-to `main`: with no pending changesets it is a no-op; with changesets, it
-opens a "Version Packages" PR (`changeset version` bumps `package.json`,
-updates `CHANGELOG.md`, and removes the consumed changesets). Merging that
-PR publishes to npm, tags the release, and creates a GitHub Release.
-Publishing uses OIDC trusted publishing — no npm tokens are stored as
-secrets, and `id-token: write` is scoped to the publish job only.
-
-For a manual release: `npx changeset version`, then `npm run release`.
-
-#### One-time setup (trusted publishing)
-
-1. Repo **Settings → Actions → General → Workflow permissions**: select
-   **Read and write permissions**, and check **Allow GitHub Actions to
-   create and approve pull requests**.
-2. Repo **Settings → Environments**: create an environment named `release`.
-3. On npmjs.com, add a trusted publisher for the package. Values must match
-   exactly: this repository, workflow filename `release.yml`, environment
-   `release`.
-4. Enable npm 2FA: `npm profile enable-2fa auth-and-writes`.
-
-#### First publish (manual)
-
-npm requires a package to exist before it can link a trusted publisher, so
-the very first publish is manual:
-
-```bash
-npm login
-npm pkg delete publishConfig.provenance   # provenance needs CI + public repo
-npm run release                           # build + changeset publish
-npm pkg set publishConfig.provenance=true
-git push origin main --follow-tags
-gh release create vX.Y.Z --notes-from-tag
-```
-
-### Publishing security
-
-- **Trusted publishing (OIDC)**: the release workflow publishes with an OIDC
-  token minted by GitHub Actions — no npm tokens involved. This is compatible
-  with 2FA (`npm profile enable-2fa auth-and-writes`).
-- **Provenance**: publishes with provenance attestation (cryptographic link
-  from package to commit + workflow). Requires a public repo and publishing
-  from CI; the manual first publish temporarily disables it.
-- **Scoped names**: use `@yourscope/package` to prevent dependency confusion;
-  `publishConfig.access: "public"` is set because scoped packages default to
-  restricted visibility.
-- **`.npmrc`**: `ignore-scripts=true` blocks dependency `postinstall`
-  scripts. This also blocks the `prepare` script, so run `npx husky`
-  after `npm install` to set up hooks (or use
-  `npm install --ignore-scripts=false`).
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
-
-## Customizing
-
-- **Package name**: update `name` in `package.json`.
-- **Build targets**: adjust `tsup.config.ts` (format, target, entry points).
-- **TypeScript config**: modify `tsconfig.json` (target, module, strictness).
-- **Biome rules**: edit `biome.json` (formatter style, linter rules).
-- **Biome → ESLint + Prettier**: if you need a larger rule ecosystem, remove
-  `@biomejs/biome` from devDependencies, install ESLint + Prettier +
-  `eslint-config-prettier`, create `eslint.config.mjs` (flat config) and
-  `.prettierrc`, and update the `lint-staged` config in `package.json`.
-- **Branch protection**: `no-commit-to-branch` is a local guard only. Also
-  enable GitHub branch protection rules on `main` (Settings → Branches).
-- **CODEOWNERS**: update `.github/CODEOWNERS` with your GitHub username.
+The package has not been released. Before a first public release, remove
+`private: true`, verify service terms and package metadata, create a Changeset,
+and follow the repository's staged release instructions in
+[`AGENTS.md`](AGENTS.md). The published-file whitelist is `dist/`,
+`README.md`, `CHANGELOG.md`, and `LICENSE`; npm always includes `package.json`.
 
 ## Documentation
 
@@ -226,5 +205,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 ## License
 
 [Apache-2.0](LICENSE) © Kali Norby ([@knorby](https://github.com/knorby))
-
-<!-- TODO: Add npm version / downloads / license badges once published. -->

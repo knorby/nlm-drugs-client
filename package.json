@@ -1,7 +1,8 @@
 {
-  "name": "repo-template-typescript",
+  "name": "@knorby/nlm-drugs-client",
   "version": "0.0.0",
-  "description": "A TypeScript starter template for universal npm packages (Node, React Native, and more).",
+  "description": "Source-facing TypeScript client for NLM drug, terminology, label, consumer health, MeSH, and PubMed services.",
+  "private": true,
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.cjs",
