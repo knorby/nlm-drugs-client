@@ -14,6 +14,19 @@ A React Native/Expo SDK 57 consumer is type-checked and bundled
 for both iOS and Android in CI. This checks Metro/Hermes compatibility, not
 on-device execution or connectivity to the upstream services.
 
+## Important notice
+
+This is an independent project. It is not affiliated with, sponsored by,
+approved by, or endorsed by the U.S. National Library of Medicine (NLM), the
+National Institutes of Health (NIH), the U.S. Department of Health and Human
+Services, or the other upstream data providers.
+
+This software retrieves information from third-party sources. It does **not**
+provide medical advice, diagnosis, treatment recommendations, prescribing
+guidance, or dosage instructions. Source data can be incomplete, outdated, or
+inapplicable to a particular patient. Check the current original source and
+consult a qualified clinician or pharmacist before making health decisions.
+
 ## Usage
 
 ```ts
@@ -103,7 +116,7 @@ and ClinicalTrials.gov studies. No default retries, cache, or rate limiter is
 installed.
 Callers must respect service-specific limits, cache guidance, access terms,
 and licensing, especially for RxClass terminology. This library does not
-provide medical advice; verify clinical information against source records.
+replace a clinical review of source records.
 
 RxNav asks applications using NLM data to include this statement:
 
@@ -257,11 +270,18 @@ suite (file hygiene + secret scanning) with `SKIP=no-commit-to-branch`.
 - [PubChem PUG REST](https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest)
 - [RxNav terms](https://lhncbc.nlm.nih.gov/RxNav/TermsofService.html)
 
-The package has not been released. Before a first public release, remove
-`private: true`, verify service terms and package metadata, create a Changeset,
-and follow the repository's staged release instructions in
-[`AGENTS.md`](AGENTS.md). The published-file whitelist is `dist/`,
-`README.md`, `CHANGELOG.md`, and `LICENSE`; npm always includes `package.json`.
+The npm package name is already `@knorby/nlm-drugs-client`, but this package
+is **not release-ready yet**: it is `private: true`, at version `0.0.0`, and
+has no pending Changeset. The release workflow remains inactive in
+`workflow-templates/release.yml`. Before publishing, review service terms,
+make the package public, choose an initial version, complete the first manual
+publish, and configure the npm trusted publisher and the GitHub `release`
+environment before activating the workflow. Provenance for subsequent CI
+publishes requires a public GitHub repository; npm's trusted-publisher setup
+must also permit direct publishing for this workflow. See
+[`AGENTS.md`](AGENTS.md) for the release checklist. The published-file
+whitelist is `dist/`, `README.md`, `CHANGELOG.md`, and `LICENSE`; npm always
+includes `package.json`.
 
 ## Documentation
 

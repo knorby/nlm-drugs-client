@@ -184,6 +184,50 @@ describe("typed source clients", () => {
     ]);
   });
 
+  it("accepts DailyMed's string null pagination on empty and single-page searches", async () => {
+    const { client } = fixture([
+      {
+        data: [],
+        metadata: {
+          current_page: 1,
+          total_pages: 0,
+          total_elements: 0,
+          next_page: "null",
+        },
+      },
+      {
+        data: [{ setid: "label-a", title: "Label A", spl_version: 3 }],
+        metadata: {
+          current_page: 1,
+          total_pages: 1,
+          total_elements: 1,
+          next_page: "null",
+        },
+      },
+    ]);
+    expect(await client.dailyMed.searchSpls({ ndc: "58151-155" })).toEqual({
+      items: [],
+      page: 1,
+      totalPages: 0,
+      totalItems: 0,
+      nextPage: undefined,
+    });
+    expect(await client.dailyMed.searchSpls({ rxcui: "617314" })).toEqual({
+      items: [
+        {
+          setid: "label-a",
+          title: "Label A",
+          splVersion: 3,
+          publishedDate: undefined,
+        },
+      ],
+      page: 1,
+      totalPages: 1,
+      totalItems: 1,
+      nextPage: undefined,
+    });
+  });
+
   it("looks up MeSH descriptors and PubMed articles with parsed results", async () => {
     const { client, requests } = fixture([
       [{ resource: "http://id.nlm.nih.gov/mesh/D001241", label: "Aspirin" }],

@@ -2,6 +2,10 @@
   "name": "@knorby/nlm-drugs-client",
   "version": "0.0.0",
   "description": "Typed TypeScript clients for NLM and public biomedical information services",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knorby/nlm-drugs-client.git"
+  },
   "private": true,
   "license": "Apache-2.0",
   "type": "module",

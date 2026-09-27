@@ -20,7 +20,8 @@ changesets consumes them to bump the version and generate the changelog.
    npm run release          # builds + publishes to npm
    ```
 
-For automated releases via GitHub Actions (opens a "Version Packages" PR that
-publishes on merge), see `.github/workflows/release.yml`.
+The release workflow is staged at `workflow-templates/release.yml`; it runs
+only after it has been moved to `.github/workflows/release.yml` and the
+first-publish prerequisites in `AGENTS.md` are complete.
 
 The `.md` files in this directory are consumed and deleted by `changeset version`.

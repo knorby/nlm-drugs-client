@@ -99,39 +99,40 @@ Select the bump type (patch/minor/major) and write a short summary. A new
 
 ### Releasing
 
-**Automated release (default):** the release workflow ships **staged** at
-`workflow-templates/release.yml` — GitHub only runs workflows from
-`.github/workflows/`, so it is inactive in this template. Activate it with:
+**Automated release (after initial publication and owner setup):** the release
+workflow ships **staged** at `workflow-templates/release.yml`. GitHub only runs
+workflows from `.github/workflows/`, so it is inactive here. Activate it with:
 
 ```bash
 git mv workflow-templates/release.yml .github/workflows/release.yml
 ```
 
-Once active, it runs on every push to `main`. With no pending changesets it
-is a no-op; with changesets, it opens a "Version Packages" PR (`changeset
-version` bumps `package.json`, updates `CHANGELOG.md`, and removes the
-consumed changesets). Merging that PR publishes to npm, tags the release,
-and creates a GitHub Release.
+Once active, it runs on every push to `main`. When the current version is
+already published and no changesets remain, it does nothing. With changesets,
+it opens a "Version Packages" PR (`changeset version` bumps `package.json`,
+updates `CHANGELOG.md`, and removes consumed changesets). Merging that PR
+publishes to npm, tags the release, and creates a GitHub Release.
 
 Prerequisites (one-time, repository owner): a `release` environment in repo
 Settings → Environments; workflow permissions set to Read and write with PR
 creation allowed; a trusted publisher configured on npmjs.com (repository,
 workflow filename `release.yml`, environment `release` — must match exactly);
-and npm 2FA (`npm profile enable-2fa auth-and-writes`). The very first
-publish is manual — see the README "First publish (manual)" section.
+and npm 2FA (`npm profile enable-2fa auth-and-writes`). A newly configured
+trusted publisher must explicitly allow direct publishing for this workflow.
+The first publish is manual; the package is currently private at version
+`0.0.0`. See `AGENTS.md` for the owner checklist before activation.
 
-**Manual release (if needed):**
+**Manual release (after first publication, if requested):**
 ```bash
 npx changeset version    # bumps package.json + generates CHANGELOG.md
 npm run release          # builds + publishes to npm
-git add . && git commit -m "chore: release" && git push
 ```
 
 ### Before publishing, always verify
 
 ```bash
 npm run build
-npm pack --dry-run    # verify only dist/, README.md, CHANGELOG.md, LICENSE
+npm pack --dry-run    # verify dist/, README.md, CHANGELOG.md, LICENSE, package.json only
 ```
 
 ## Publishing security
@@ -140,10 +141,10 @@ npm pack --dry-run    # verify only dist/, README.md, CHANGELOG.md, LICENSE
   token minted by GitHub Actions; there are no npm tokens (no `NPM_TOKEN`
   secret). Compatible with 2FA (`npm profile enable-2fa auth-and-writes`)
   because no token needs an OTP.
-- **Provenance** — this repo publishes with `--provenance` (cryptographic
-  attestation linking the published package to the commit + workflow).
-  Requires a public repo and publishing from CI; the manual first publish
-  temporarily removes `publishConfig.provenance`.
+- **Provenance** — `publishConfig.provenance` requests a cryptographic
+  attestation linking a published package to its commit and workflow.
+  It requires a public repo and CI publication; the manual first publish
+  temporarily removes this setting.
 - **Scoped names** — use `@yourscope/package` names to prevent dependency
   confusion attacks; `publishConfig.access: "public"` is set because scoped
   packages default to restricted visibility.

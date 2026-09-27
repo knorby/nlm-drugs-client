@@ -75,7 +75,9 @@ export function createDailyMedMethods(
             ? undefined
             : integer(metadata.total_elements, "DailyMed", "total_elements"),
         nextPage:
-          metadata.next_page === undefined
+          metadata.next_page === undefined ||
+          metadata.next_page === null ||
+          metadata.next_page === "null"
             ? undefined
             : integer(metadata.next_page, "DailyMed", "next_page"),
       };

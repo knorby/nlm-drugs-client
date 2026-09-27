@@ -155,18 +155,21 @@ PRs and release them all at once.
   `.changeset/*.md` file alongside the code change.
 - This package is currently `private: true` and has not been published. A
   release requires deliberately making it public, reviewing source-service
-  terms and package metadata, and then following the changeset/release flow.
-- **To release**: `npx changeset version` (bumps `package.json` +
-  `CHANGELOG.md`), then `npm run release` (builds + publishes).
+  terms and package metadata, choosing a first nonzero version, and then
+  following the first-publish and changeset/release flow. There are no pending
+  changesets at present.
+- **After initial publication**: `npx changeset version` (bumps `package.json`
+  + `CHANGELOG.md`), then `npm run release` (builds + publishes) when a manual
+  release is explicitly requested.
 - **GitHub Actions release** (`workflow-templates/release.yml`): ships
   **staged** — GitHub only runs workflows from `.github/workflows/`, so this
-  workflow is inert in the template repo (no publish attempts on pushes to
-  `main`). To activate in a repo created from this template:
+  workflow is inert in this repo (no publish attempts on pushes to
+  `main`). To activate after first publication and owner setup:
   `git mv workflow-templates/release.yml .github/workflows/release.yml`.
   Once active, it runs on every push to `main` (and can be triggered
   manually via `workflow_dispatch`, e.g. to retry after a transient publish
-  failure): with no pending changesets
-  it is a no-op. With changesets, it opens a "Version Packages" PR
+  failure): when the published version is current and no changesets are
+  pending, it is a no-op. With changesets, it opens a "Version Packages" PR
   (`changeset version` bumps the version string, updates `CHANGELOG.md`,
   and removes consumed changesets); merging that PR publishes to npm, tags,
   and creates a GitHub Release. Publishing uses OIDC trusted publishing — no
@@ -179,31 +182,39 @@ PRs and release them all at once.
 
 ### One-time release setup (repository owner)
 
-0. Activate the staged workflow:
-   `git mv workflow-templates/release.yml .github/workflows/release.yml`.
-1. Repo **Settings → Actions → General → Workflow permissions**: select **Read
+1. Confirm the package has been published once under the intended scope, and
+   the repository is public if npm provenance is required.
+2. Repo **Settings → Actions → General → Workflow permissions**: select **Read
    and write permissions**, and check **Allow GitHub Actions to create and
    approve pull requests**.
-2. Repo **Settings → Environments**: create an environment named `release`.
-3. On npmjs.com, add a **trusted publisher** for the package. Values must
+3. Repo **Settings → Environments**: create an environment named `release`.
+4. On npmjs.com, add a **trusted publisher** for the package. Values must
    match the workflow exactly: this repository, workflow filename
-   `release.yml`, environment `release`.
-4. Enable npm 2FA: `npm profile enable-2fa auth-and-writes`.
+   `release.yml`, environment `release`. For a newly configured publisher,
+   explicitly permit direct publishing as well as staging: this workflow
+   uses the publish action, not `npm stage publish`.
+5. Enable npm 2FA: `npm profile enable-2fa auth-and-writes`.
+6. Activate the staged workflow:
+   `git mv workflow-templates/release.yml .github/workflows/release.yml`.
 
 ### First publish (manual)
 
 npm requires a package to exist before it can link a trusted publisher
 ([npm/cli#8544](https://github.com/npm/cli/issues/8544)), so the very first
-publish is manual:
+publish is manual. The owner must first review service terms and public
+package metadata, remove `private: true`, create and apply a Changeset so
+the first version is not `0.0.0`, and verify `npm pack --dry-run`. Only then:
 
 ```bash
 npm login
 npm pkg delete publishConfig.provenance   # provenance needs CI + public repo
 npm run release                           # build + changeset publish
 npm pkg set publishConfig.provenance=true
-git push origin main --follow-tags
-gh release create vX.Y.Z --notes-from-tag
 ```
+
+Restore `publishConfig.provenance` even if the publish fails. Review the
+resulting version and tag before pushing or creating a GitHub Release; do not
+run those git/GitHub operations without the owner's explicit request.
 
 ### Release failure quick reference
 
