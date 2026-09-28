@@ -1,0 +1,21 @@
+{
+  "name": "nlm-drugs-expo-compat",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "check": "npm run typecheck && npm run export:native",
+    "typecheck": "tsc --noEmit",
+    "export:native": "expo export --platform ios --output-dir dist/ios && expo export --platform android --output-dir dist/android"
+  },
+  "dependencies": {
+    "@knorby/nlm-drugs-client": "file:../..",
+    "expo": "~57.0.25",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  }
+}
