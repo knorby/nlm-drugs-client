@@ -2,9 +2,9 @@
 
 Instructions and steering for AI coding agents working in this repository.
 
-This is a TypeScript starter template for universal npm packages (Node, React
-Native, and more). Customize per project and keep this file updated as
-conventions evolve.
+`@knorby/nlm-drugs-client` is a TypeScript client for the NLM drug APIs,
+published as a universal npm package with dual ESM/CJS output. Keep this file
+updated as conventions evolve.
 
 ---
 
@@ -123,15 +123,10 @@ PRs and release them all at once.
   `.changeset/*.md` file alongside the code change.
 - **To release**: `npx changeset version` (bumps `package.json` +
   `CHANGELOG.md`), then `npm run release` (builds + publishes).
-- **GitHub Actions release** (`workflow-templates/release.yml`): ships
-  **staged** — GitHub only runs workflows from `.github/workflows/`, so this
-  workflow is inert in the template repo (no publish attempts on pushes to
-  `main`). To activate in a repo created from this template:
-  `git mv workflow-templates/release.yml .github/workflows/release.yml`.
-  Once active, it runs on every push to `main` (and can be triggered
-  manually via `workflow_dispatch`, e.g. to retry after a transient publish
-  failure): with no pending changesets
-  it is a no-op. With changesets, it opens a "Version Packages" PR
+- **GitHub Actions release** (`.github/workflows/release.yml`): runs on every
+  push to `main` (and can be triggered manually via `workflow_dispatch`, e.g.
+  to retry after a transient publish failure). With no pending changesets it
+  is a no-op. With changesets, it opens a "Version Packages" PR
   (`changeset version` bumps the version string, updates `CHANGELOG.md`,
   and removes consumed changesets); merging that PR publishes to npm, tags,
   and creates a GitHub Release. Publishing uses OIDC trusted publishing — no
@@ -144,8 +139,6 @@ PRs and release them all at once.
 
 ### One-time release setup (repository owner)
 
-0. Activate the staged workflow:
-   `git mv workflow-templates/release.yml .github/workflows/release.yml`.
 1. Repo **Settings → Actions → General → Workflow permissions**: select **Read
    and write permissions**, and check **Allow GitHub Actions to create and
    approve pull requests**.
@@ -227,10 +220,8 @@ These rules are mandatory. Follow them strictly.
 
 - Keep `AGENTS.md` and `README.md` up to date as part of any change that
   affects setup, conventions, or project structure.
-- Use the `docs/` directory for higher-level design notes, architecture, and
-  decision records (ADRs). See `docs/README.md` for the ADR template.
-- Treat `docs/` as living documentation. Create an ADR in `docs/decisions/`
-  for significant design decisions.
+- Use the `docs/` directory for higher-level design notes and architecture
+  decision records (ADRs).
 
 ### Before declaring done
 

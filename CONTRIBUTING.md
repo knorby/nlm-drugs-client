@@ -99,26 +99,19 @@ Select the bump type (patch/minor/major) and write a short summary. A new
 
 ### Releasing
 
-**Automated release (default):** the release workflow ships **staged** at
-`workflow-templates/release.yml` — GitHub only runs workflows from
-`.github/workflows/`, so it is inactive in this template. Activate it with:
-
-```bash
-git mv workflow-templates/release.yml .github/workflows/release.yml
-```
-
-Once active, it runs on every push to `main`. With no pending changesets it
-is a no-op; with changesets, it opens a "Version Packages" PR (`changeset
-version` bumps `package.json`, updates `CHANGELOG.md`, and removes the
-consumed changesets). Merging that PR publishes to npm, tags the release,
-and creates a GitHub Release.
+**Automated release (default):** the release workflow
+(`.github/workflows/release.yml`) runs on every push to `main`. With no
+pending changesets it is a no-op; with changesets, it opens a "Version
+Packages" PR (`changeset version` bumps `package.json`, updates
+`CHANGELOG.md`, and removes the consumed changesets). Merging that PR
+publishes to npm, tags the release, and creates a GitHub Release.
 
 Prerequisites (one-time, repository owner): a `release` environment in repo
 Settings → Environments; workflow permissions set to Read and write with PR
 creation allowed; a trusted publisher configured on npmjs.com (repository,
 workflow filename `release.yml`, environment `release` — must match exactly);
 and npm 2FA (`npm profile enable-2fa auth-and-writes`). The very first
-publish is manual — see the README "First publish (manual)" section.
+publish is manual — see AGENTS.md "First publish (manual)".
 
 **Manual release (if needed):**
 ```bash
