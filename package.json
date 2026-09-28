@@ -1,9 +1,25 @@
 {
-  "name": "repo-template-typescript",
-  "version": "0.0.0",
-  "description": "A TypeScript starter template for universal npm packages (Node, React Native, and more).",
+  "name": "@knorby/nlm-drugs-client",
+  "version": "0.1.0",
+  "description": "TypeScript client for the NLM drug APIs.",
   "license": "Apache-2.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knorby/nlm-drugs-client.git"
+  },
+  "author": "Kali Norby (@knorby)",
+  "bugs": {
+    "url": "https://github.com/knorby/nlm-drugs-client/issues"
+  },
+  "homepage": "https://github.com/knorby/nlm-drugs-client#readme",
+  "keywords": [
+    "nlm",
+    "drugs",
+    "rxnorm",
+    "api",
+    "client"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -65,6 +81,6 @@
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "provenance": "true"
   }
 }
