@@ -1,6 +1,6 @@
 {
   "name": "@knorby/nlm-drugs-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript client for the NLM drug APIs.",
   "license": "Apache-2.0",
   "type": "module",
@@ -52,9 +52,13 @@
     "format": "biome format --write",
     "check": "biome check --write",
     "typecheck": "tsc -p tsconfig.test.json",
+    "typecheck:package": "npm run build && tsc --ignoreConfig --noEmit --module nodenext --moduleResolution nodenext --target es2022 --strict --skipLibCheck false tests/cjs-consumer.cts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:live": "vitest run --config vitest.live.config.ts",
+    "check:services": "npm run test:coverage && npm run test:live",
+    "check:expo": "npm run build && npm ci --prefix examples/expo-compat --ignore-scripts && npm run check --prefix examples/expo-compat",
     "release": "npm run build && changeset publish",
     "prepare": "husky"
   },
@@ -70,17 +74,20 @@
     "@biomejs/biome": "^2.5.14",
     "@changesets/cli": "^3.0.3",
     "@commitlint/cli": "^21.2.3",
-    "@commitlint/config-conventional": "^21.2.2",
-    "@types/node": "^26.6.2",
-    "@vitest/coverage-v8": "^5.0.1",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@types/node": "^26.6.3",
+    "@vitest/coverage-v8": "^5.0.2",
     "husky": "^9.1.7",
-    "lint-staged": "^17.5.1",
+    "lint-staged": "^17.6.0",
     "tsup": "^8.5.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.1"
   },
   "publishConfig": {
     "access": "public",
-    "provenance": "true"
+    "provenance": true
   }
 }
