@@ -39,10 +39,10 @@ import { createNlmClient } from "@knorby/nlm-drugs-client";
 const nlm = createNlmClient();
 
 // Look up a drug by name and normalize it to an RxNorm concept
-const { rxcui } = await nlm.rxnorm.findRxcuiByString({ name: "lipitor" });
+const [rxcui] = await nlm.rxnorm.findRxcuiByString({ name: "lipitor" });
 
-// Get the National Drug Codes for that concept
-const ndcs = await nlm.rxnorm.getNDCs({ rxcui });
+// Everything known about that concept, grouped by term type
+const groups = await nlm.rxnorm.getAllRelatedInfo({ rxcui });
 
 // Fetch the current official FDA label (Structured Product Label)
 const label = await nlm.dailymed.getSpls({ drugName: "Lipitor" });
@@ -74,8 +74,8 @@ const nlm = createNlmClient();
 // Fuzzy match free text against drug names and codes
 const matches = await nlm.rxnorm.approximateTerm({ term: "lipitor", maxEntries: 5 });
 
-// Everything known about a concept
-const info = await nlm.rxnorm.getAllRelatedInfo({ rxcui: "153165" });
+// National Drug Codes for a pack- or product-level concept
+const ndcs = await nlm.rxnorm.getNDCs({ rxcui: "197361" });
 
 // Check whether a concept is active, quantified, or obsolete
 const status = await nlm.rxnorm.getRxcuiHistoryStatus({ rxcui: "153165" });
@@ -85,18 +85,18 @@ const status = await nlm.rxnorm.getRxcuiHistoryStatus({ rxcui: "153165" });
 
 ```ts
 // Prescriber-oriented term for an RxNorm concept
-const term = await nlm.rxterms.getRxTermsInfo({ rxcui: "153165" });
-// term: { rxcui, name, rxtermDoseForm, strength, ... }
+const term = await nlm.rxterms.getRxTermsInfo({ rxcui: "617318" });
+// term: { displayName: "LIPITOR (Oral Pill)", strength: "20 mg", ... }
 ```
 
 ### RxClass
 
 ```ts
 // Drug classes that an RxNorm concept belongs to
-const classes = await nlm.rxclass.findClassByDrug({ rxcui: "153165" });
+const classes = await nlm.rxclass.findClassByDrug({ rxcui: "617318" });
 
 // All members of a class
-const members = await nlm.rxclass.getClassMembers({ classId: "N0000175656" });
+const members = await nlm.rxclass.getClassMembers({ classId: "A12CA", relaSource: "ATC" });
 ```
 
 ### DailyMed
@@ -118,8 +118,8 @@ const uniis = await nlm.dailymed.getUniis();
 
 ```ts
 // Consumer health information for a medication code
-const result = await nlm.connect.connect({ codeSystem: "rxcui", code: "153165" });
-// result: { url, topicTitle, informationLink, … } per matched topic
+const result = await nlm.connect.connect({ codeSystem: "rxnorm", code: "153165" });
+// result: [{ title: "Atorvastatin", url: "https://medlineplus.gov/druginfo/…", … }]
 ```
 
 ### CJS
