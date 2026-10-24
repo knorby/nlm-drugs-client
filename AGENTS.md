@@ -94,7 +94,10 @@ scanning). Both are needed for full coverage.
     so run `npm run check` before committing if hooks are skipped)
   - `npm run typecheck` (tsc, src + tests)
   - `npm run build` (tsup)
-  - `npm test` (Vitest)
+  - `npm run test:coverage` (Vitest; statements, branches, functions, and
+    lines must all be 100%)
+  - Codecov upload from `coverage/lcov.info` (requires the
+    `CODECOV_TOKEN` repository secret)
   - `npm audit --audit-level=moderate` (vulnerability scan)
 - The **pre-commit suite** (file hygiene + secret scanning) also runs in CI
   via `.github/workflows/pre-commit.yml` on every push to `main` and PRs
