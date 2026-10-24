@@ -147,8 +147,9 @@ npm pack --dry-run    # verify only dist/, README.md, CHANGELOG.md, LICENSE
 
 1. Create a branch from `main`.
 2. Make your changes + add a changeset (`npx changeset`).
-3. Ensure all checks pass: `npm run lint && npm run typecheck && npm test &&
-   npm run build`.
-4. Open a PR against `main`. CI runs lint, typecheck, build, test, and
-   `npm audit`, plus the pre-commit suite (file hygiene + secret scanning).
+3. Ensure all checks pass: `npm run lint && npm run typecheck &&
+   npm run test:coverage && npm run build`.
+4. Open a PR against `main`. CI runs lint, typecheck, build, coverage (uploaded
+   to Codecov), and `npm audit`, plus the pre-commit suite (file hygiene +
+   secret scanning).
 5. After review, merge. Release separately via changesets.

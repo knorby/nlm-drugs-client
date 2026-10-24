@@ -152,7 +152,13 @@ function createSearch<Result>(
       let file: string | undefined;
       let server: string | undefined;
       while (true) {
-        const page = await search(term, { ...options, start, file, server });
+        const page = await search(term, {
+          ...options,
+          pageSize,
+          start,
+          file,
+          server,
+        });
         yield* page.results;
         start += page.results.length;
         if (start >= page.total || !page.results.length) return;
