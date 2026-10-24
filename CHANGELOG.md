@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+### Patch Changes
+
+- 632b186: Report 100% test coverage to Codecov, enforce full coverage in CI, and send the default page size when iterating MedlinePlus topics.
+
 ## 0.1.1
 
 ### Patch Changes
